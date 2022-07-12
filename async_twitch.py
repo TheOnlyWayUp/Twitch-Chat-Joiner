@@ -22,7 +22,7 @@ console = Console()
 
 with open(config_path, "r") as handler:
     config = json.load(handler)
-    console.log("[cyan][L][/cyan] - Config Loaded, {}".format(config))
+    console.log("[cyan][LOG][/cyan] - Config Loaded, {}".format(config))
 STREAMER_LISTS = {"joined": set(), "offline": set(config.get("channels"))}
 
 # --- Validate Config --- #
@@ -38,6 +38,7 @@ def validate_config():
         "oauth_token": str,
         "channels": list,
         "wait_time": int,
+        "verbose": bool
     }
 
     # Key Presence Validation
@@ -45,7 +46,7 @@ def validate_config():
     errors = []
     for key in not_present_keys:
         console.log(
-            "[red][E][/red] Key `{}` not present in configuration file ({}), please verify.".format(
+            "[red][ERROR][/red] Key `{}` not present in configuration file ({}), please verify.".format(
                 key, config_path.absolute()
             )
         )
@@ -55,11 +56,11 @@ def validate_config():
         raise Exception(errors)
 
     # Value Validation
-    not_present_values = [(k, v) for k, v in config.items() if not v]
+    not_present_values = [(k, v) for k, v in config.items() if not v and type(v) is not bool]
     errors = []
     for key, value in not_present_values:
         console.log(
-            "[red][E][/red] Key `{}` has no value (`{}`). Value should also be of type `{}`. Configuration File - {}".format(
+            "[red][ERROR][/red] Key `{}` has no value (`{}`). Value should also be of type `{}`. Configuration File - {}".format(
                 key, value, required_keys.get(key), config_path.absolute()
             )
         )
@@ -75,7 +76,7 @@ def validate_config():
     errors = []
     for key, value in bad_type_values:
         console.log(
-            "[red][E][/red] Key `{}`'s value (`{}`) is of type `{}` when it should be of type `{}`.\nConfiguration File - {}".format(
+            "[red][ERROR][/red] Key `{}`'s value (`{}`) is of type `{}` when it should be of type `{}`.\nConfiguration File - {}".format(
                 key,
                 value,
                 type(value),
@@ -130,19 +131,18 @@ def keepalive(message, **kwargs):
 
 def handle_sigint(signum, frame):
     console.log("[green][EXIT][/green] - CTRL+C Recieved, cleaning up.")
-    bot.trigger("my.sigint.event")
+    asyncio.create_task(handle())
 
 
 signal.signal(signal.SIGINT, handle_sigint)
 
 
-@bot.on("my.sigint.event")
 async def handle(**kwargs):
-    console.log("[cyan][L][/cyan] - Stopping")
+    console.log("[cyan][LOG][/cyan] - Stopping")
     try:
         await asyncio.wait_for(bot.disconnect(), timeout=5)
     except asyncio.TimeoutError:
-        console.log("[yellow][W][/yellow] Disconnect timed out")
+        console.log("[yellow][WARNING][/yellow] Disconnect timed out")
 
     # Signal a stop before disconnecting so that any reconnect
     # coros aren't run by the last run_forever sweep.
@@ -153,7 +153,7 @@ async def handle(**kwargs):
     try:
         await asyncio.wait_for(stop(), timeout=5)
     except asyncio.TimeoutError:
-        console.log("[yellow][W][/yellow] Stopping the loop timed out")
+        console.log("[yellow][WARNING][/yellow] Stopping the loop timed out")
         bot.loop.stop()
         exit()
 
@@ -181,7 +181,7 @@ async def retrieve_access_token(
 
         if response.status == 500:
             console.log(
-                "[red][E]/[red] Failed to fetch access token.\nResponse: {}\nJSON: {}\nBody: {}".format(
+                "[red][ERROR]/[red] Failed to fetch access token.\nResponse: {}\nJSON: {}\nBody: {}".format(
                     response, response_data, body
                 )
             )
@@ -191,7 +191,7 @@ async def retrieve_access_token(
             "2"
         ):  # Status Code doesn't start with two
             console.log(
-                "[yellow][W][/yellow] Status Code for access token fetch is not in the 200 Range.\nResponse: {}\nJSON: {}\nBody: {}".format(
+                "[yellow][WARNING][/yellow] Status Code for access token fetch is not in the 200 Range.\nResponse: {}\nJSON: {}\nBody: {}".format(
                     response, response_data, body
                 )
             )
@@ -199,7 +199,7 @@ async def retrieve_access_token(
     access_token = response_data.get("access_token")
     if access_token is None:
         console.log(
-            "[red][E][/red] Access token is not present in response, please check logs.\nJSON: {}\nBody: {}".format(
+            "[red][ERROR][/red] Access token is not present in response, please check logs.\nJSON: {}\nBody: {}".format(
                 response_data, body
             )
         )
@@ -234,7 +234,7 @@ async def retrieve_streaming_status(
             # something went wrong with the request
 
             console.log(
-                "[red][E][/red] Access token is not present in response, please check logs.\nJSON: {}\nHeaders: {}".format(
+                "[red][ERROR][/red] Access token is not present in response, please check logs.\nJSON: {}\nHeaders: {}".format(
                     response_data, headers
                 )
             )
@@ -292,8 +292,8 @@ async def join_channels(channels: List[str], bot: bottom.Client):
     """Joins channels"""
 
     for channel in channels:
-        bot.send("JOIN", channel=channel)
-        console.log("[cyan][L][/cyan] - Joined channel {}".format(channel))
+        bot.send("JOIN", channel="#{}".format(channel))
+        console.log("[cyan][JOIN][/cyan] - Joined channel {}".format(channel))
 
     return True
 
@@ -302,10 +302,45 @@ async def leave_channels(channels: List[str], bot: bottom.Client):
     """Leaves channels"""
 
     for channel in channels:
-        bot.send("PART", channel=channel)
-        console.log("[cyan][L][/cyan] - Left channel {}".format(channel))
+        bot.send("PART", channel="#{}".format(channel))
+        console.log("[cyan][LEAVE][/cyan] - Left channel {}".format(channel))
 
     return True
+
+if config.get("verbose", False):
+    all_events = [
+        "PING",
+        "JOIN",
+        "PART",
+        "PRIVMSG",
+        "NOTICE",
+        "USERMODE",
+        "CHANNELMODE",
+        "RPL_WELCOME",
+        "RPL_YOURHOST",
+        "RPL_CREATED",
+        "RPL_MYINFO",
+        "RPL_BOUNCE",
+        "RPL_MOTDSTART",
+        "RPL_MOTD",
+        "RPL_ENDOFMOTD",
+        "RPL_LUSERCLIENT",
+        "RPL_LUSERME",
+        "RPL_LUSEROP",
+        "RPL_LUSERUNKNOWN",
+        "RPL_LUSERCHANNELS",
+        "ERR_NOMOTD",
+    ]
+
+    def event_handler(event_name: str, bot: bottom.Client):
+
+        @bot.on(event_name)
+        async def log(**kwargs):
+            console.log("{} - {}".format(event_name, kwargs))
+        
+        return log
+
+    [event_handler(event, bot) for event in all_events]
 
 
 # --- Main --- #
@@ -317,7 +352,7 @@ async def main():
     session = aiohttp.ClientSession()
     bot = await prepare_socket()
 
-    console.log("[cyan][L][/cyan] - Socket Prepared")
+    console.log("[cyan][LOG][/cyan] - Socket Prepared")
 
     while True:
         console.rule("Beginning Loop")
@@ -329,7 +364,7 @@ async def main():
         )
         console.log(config)
         console.log(
-            "[cyan][L][/cyan] - Alive Streamers Retrieved, {}".format(
+            "[cyan][LOG][/cyan] - Alive Streamers Retrieved, {}".format(
                 currently_alive_streamers
             )
         )
@@ -339,7 +374,7 @@ async def main():
             currently_alive_streamers
         )
         console.log(
-            "[cyan][L][/cyan] - Offline Streamers Retrieved, {}".format(
+            "[cyan][LOG][/cyan] - Offline Streamers Retrieved, {}".format(
                 now_offline_streamers
             )
         )

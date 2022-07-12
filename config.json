@@ -4,5 +4,6 @@
     "client_secret": "",
     "oauth_token": "",
     "channels": [],
-    "wait_time": 0
+    "wait_time": 0,
+    "verbose": false
 }

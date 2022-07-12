@@ -22,7 +22,8 @@ If you're looking for a program to bot Twitch's in-built points system, I recomm
     "client_secret": "",
     "oauth_token": "",
     "channels": [],
-    "wait_time": 0
+    "wait_time": 0,
+    "verbose": false
 }
 ```
 - `bot_username`: Your account username
@@ -31,5 +32,6 @@ If you're looking for a program to bot Twitch's in-built points system, I recomm
 - `oauth_token`: OAuth Token to access IRC (You can get it [here](https://twitchapps.com/tmi/))
 - `channels`: List of Twitch Streamer names whose chats the bot should join
 - `wait_time`: How often the bot should check if streamers are online/offline and join their chats (in seconds)
+- `verbose`: Boolean of whether or not events should be logged to console (People joining, leaving, chat messages, pings, notices, etc.)
 
 TheOnlyWayUp#1231
