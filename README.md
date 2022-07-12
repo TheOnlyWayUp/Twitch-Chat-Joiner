@@ -1,4 +1,4 @@
-d# Twitch Chat Joiner
+# Twitch Chat Joiner
 
 Made to bot services like StreamElements, which give you points for staying in chat.
 

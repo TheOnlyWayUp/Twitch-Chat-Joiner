@@ -6,6 +6,15 @@ from rich.console import Console
 from pathlib import Path
 from collections import ChainMap
 
+"""
+References
+- https://dev.twitch.tv/docs/irc
+- https://github.com/numberoverzero/bottom
+
+- https://bottom-docs.readthedocs.io (Functions keepalive, handle_sigint and handle are directly copied from here.
+- https://github.com/jschlenker/twitch-multistream-chat (Tried using this, but it became impractical to keep modifying it to stop breaking/suit my needs. I wrote this program as a kind of 'rewrite', taking reference from `twitch-multistream-chat`)
+"""
+
 # --- Constants --- #
 
 config_path = Path(__file__).parent / "config.json"
