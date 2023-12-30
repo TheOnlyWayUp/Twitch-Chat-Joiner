@@ -35,3 +35,9 @@ If you're looking for a program to bot Twitch's in-built points system, I recomm
 - `verbose`: Boolean of whether or not events should be logged to console (People joining, leaving, chat messages, pings, notices, etc.)
 
 TheOnlyWayUp#1231
+
+---
+
+<div align="center">
+    <p>TheOnlyWayUp © 2023</p>
+</div>
